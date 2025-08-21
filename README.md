@@ -8,7 +8,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/thiagovazzoler/n8n-nodes-xmpp.svg)](https://github.com/thiagovazzoler/n8n-nodes-xmpp/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Custom [n8n](https://n8n.io) node for integrating with **XMPP servers (Openfire/Smack/Spark and others)**.  
+Custom [n8n](https://n8n.io) node for integrating with **XMPP servers (Openfire and Spark)**.  
 This node allows you to **send and receive messages via XMPP**, making it easier to automate workflows using instant messaging.
 
 ---

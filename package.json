@@ -1,9 +1,14 @@
 {
     "name": "n8n-nodes-xmpp",
-    "version": "1.0.3",
+    "version": "1.0.5",
     "description": "Component for sending files and messages using the XMPP protocol",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
+    "files": [
+        "dist",
+        "README.md",
+        "package.json"
+    ],
     "scripts": {
         "build": "tsc && cpx \"src/**/*.png\" dist",
         "dev": "tsc --watch"
