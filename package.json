@@ -1,6 +1,6 @@
 {
     "name": "n8n-nodes-xmpp",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "Component for sending files and messages using the XMPP protocol",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -17,18 +17,14 @@
     "author": "Thiago Vazzoler Loureiro",
     "license": "MIT",
     "devDependencies": {
-        "@types/mime-types": "^3.0.1",
-        "@types/node": "^20.4.2",
         "@types/uuid": "^10.0.0",
         "@types/xmpp__xml": "^0.13.5",
         "cpx": "^1.5.0",
-        "rimraf": "^6.0.1",
         "typescript": "^5.1.6"
     },
     "dependencies": {
         "@xmpp/client": "^0.13.6",
         "@xmpp/xml": "^0.13.3",
-        "mime-types": "^3.0.1",
         "n8n-workflow": "^1.101.0",
         "uuid": "^11.1.0"
     },
