@@ -4,8 +4,8 @@
 
 [![npm version](https://img.shields.io/npm/v/n8n-nodes-xmpp.svg)](https://www.npmjs.com/package/n8n-nodes-xmpp)
 [![npm downloads](https://img.shields.io/npm/dt/n8n-nodes-xmpp.svg)](https://www.npmjs.com/package/n8n-nodes-xmpp)
-[![GitHub issues](https://img.shields.io/github/issues/<your-username>/n8n-nodes-xmpp.svg)](https://github.com/<your-username>/n8n-nodes-xmpp/issues)
-[![GitHub stars](https://img.shields.io/github/stars/<your-username>/n8n-nodes-xmpp.svg)](https://github.com/<your-username>/n8n-nodes-xmpp/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/thiagovazzoler/n8n-nodes-xmpp.svg)](https://github.com/thiagovazzoler/n8n-nodes-xmpp/issues)
+[![GitHub stars](https://img.shields.io/github/stars/thiagovazzoler/n8n-nodes-xmpp.svg)](https://github.com/thiagovazzoler/n8n-nodes-xmpp/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Custom [n8n](https://n8n.io) node for integrating with **XMPP servers (Openfire/Smack/Spark and others)**.  
