@@ -27,7 +27,7 @@ class XmppClientSingleton {
                 password: options.password,
             });
 
-            this.instance = xmpp;
+            XmppClientSingleton.instance = xmpp;
 
             // Aqui você pode configurar os eventos padrões se quiser:
             this.instance.on('online', (address: any) => {
@@ -45,12 +45,16 @@ class XmppClientSingleton {
                 console.log('📡 XMPP Status:', status);
             });
 
+           // Start com timeout
             try {
-                await this.instance.start();
+                await Promise.race([
+                    xmpp.start(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('XMPP start timeout')), 10000))
+                ]);
             } catch (err) {
-                this.instance = null;
+                XmppClientSingleton.instance = null;
                 console.error('❌ XMPP client error:', err);
-                throw new Error(`XMPP Error client: ${err}`);; // Repassar erro para o chamador (ex: trigger)
+                throw err;
             }
 
 
@@ -104,9 +108,11 @@ class XmppClientSingleton {
     public static async reset(): Promise<void> {
         if (this.instance) {
             try {
-                await this.instance.close();
-            }
-            catch (err) {
+                await Promise.race([
+                    this.instance.stop(), 
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('XMPP close timeout')), 5000))
+                ]);
+            } catch (err) {
                 console.error('❌ Error disconnecting XMPP:', err);
             } finally {
                 this.instance = null;
