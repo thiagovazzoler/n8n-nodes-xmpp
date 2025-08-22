@@ -17,9 +17,9 @@ export class XmppSendFile implements INodeType {
         icon: 'file:xmpp.png',
         group: ['transform'],
         version: 1,
-        description: 'Envia arquivos para um usuário XMPP via Openfire usando IBB (XEP-0047)',
+        description: 'Send files to an XMPP user via Openfire using IBB (XEP-0047)',
         defaults: {
-            name: 'XMPP Enviar Arquivo',
+            name: 'XMPP Send File',
         },
         inputs: ['main'],
         outputs: ['main'],

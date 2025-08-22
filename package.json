@@ -1,59 +1,54 @@
 {
-    "name": "n8n-nodes-xmpp",
-    "version": "1.0.11",
-    "description": "Component for sending files and messages using the XMPP protocol",
-    "main": "dist/index.js",
-    "types": "dist/index.d.ts",
-    "files": [
-        "dist",
-        "README.md",
-        "package.json"
+  "name": "n8n-nodes-xmpp",
+  "version": "1.0.17",
+  "description": "Component for sending files and messages using the XMPP protocol",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "package.json"
+  ],
+  "scripts": {
+    "build": "tsc && cpx \"src/**/*.png\" dist && cpx \"package.json\" dist",
+    "dev": "tsc --watch"
+  },
+  "keywords": [
+    "n8n",
+    "n8n-community-node",
+    "xmpp",
+    "jabber"
+  ],
+  "author": "Thiago Vazzoler Loureiro <thiago.vazzoler@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.3.0",
+    "@types/uuid": "^10.0.0",
+    "@types/xmpp__xml": "^0.13.5",
+    "cpx": "^1.5.0",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "@xmpp/client": "^0.13.6",
+    "@xmpp/xml": "^0.13.3",
+    "axios": "^1.11.0",
+    "express": "^5.1.0",
+    "uuid": "^11.1.0"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*",
+    "n8n-core": "*",
+    "lodash": "*"
+  },
+  "n8n": {
+    "nodes": [
+      "dist/nodes/Xmpp/XmppSendFile.node.js",
+      "dist/nodes/Xmpp/XmppSendMessage.node.js",
+      "dist/nodes/Xmpp/XmppTrigger.node.js"
     ],
-    "scripts": {
-        "build": "tsc && cpx \"src/**/*.png\" dist && cpx \"package.json\" dist",
-        "dev": "tsc --watch"
-    },
-    "keywords": [
-        "n8n-community-node-package",
-        "n8n-community-node",
-        "n8n",
-        "XMPP"
-    ],
-    "author": {
-        "name": "Thiago Vazzoler Loureiro",
-        "email": "thiago.vazzoler@gmail.com"
-    },
-    "license": "MIT",
-    "devDependencies": {
-        "@types/express": "^5.0.3",
-        "@types/node": "^24.3.0",
-        "@types/uuid": "^10.0.0",
-        "@types/xmpp__xml": "^0.13.5",
-        "cpx": "^1.5.0",
-        "typescript": "^5.9.2"
-    },
-    "dependencies": {
-        "@langchain/core": "^0.3.72",
-        "@n8n/config": "^1.1.0",
-        "@sentry/node": "^10.5.0",
-        "@xmpp/client": "^0.13.6",
-        "@xmpp/xml": "^0.13.3",
-        "axios": "^1.11.0",
-        "express": "^5.1.0",
-        "n8n-workflow": "*",
-        "uuid": "^11.1.0"
-    },
-    "n8n": {
-        "nodes": [
-            "dist/nodes/Xmpp/XmppSendFile.node.js",
-            "dist/nodes/Xmpp/XmppSendMessage.node.js",
-            "dist/nodes/Xmpp/XmppTrigger.node.js"
-        ],
-        "credentials": [
-            "dist/credentials/XmppApi.credentials.js"
-        ]
-    },
-    "peerDependencies": {
-        "n8n-workflow": "*"
-    }
+    "credentials": [
+      "dist/credentials/XmppApi.credentials.js"
+    ]
+  }
 }
