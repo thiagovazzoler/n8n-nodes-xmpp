@@ -20,12 +20,15 @@ class XmppClientSingleton {
             if (!options) {
                 throw new Error('XmppClientSingleton: First call requires connection parameters.');
             }
+
+             console.log('[PID]', process.pid, 'Trigger...');
+
             const xmpp = client({
                 service: options.service,
                 domain: options.domain,
                 username: options.username,
                 password: options.password,
-                reconnect: false
+                resource: "n8n"
             });
 
             this.instance = xmpp;
@@ -103,9 +106,7 @@ class XmppClientSingleton {
     public static async reset(): Promise<void> {
         if (this.instance) {
             try {
-                console.log('🔌 Trying to stop XMPP connection...');
-                await this.instance.stop();
-                console.log('✅ XMPP client disconnected successfully.');
+                await this.instance.close();
             }
             catch (err) {
                 console.error('❌ Error disconnecting XMPP:', err);

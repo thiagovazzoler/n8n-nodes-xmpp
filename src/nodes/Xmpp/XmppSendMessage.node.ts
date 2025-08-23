@@ -64,8 +64,10 @@ export class XmppSendMessage implements INodeType {
                 service: service.toString(),
                 domain: domain.toString(),
                 username: jid.toString(),
-                password: password.toString(),
+                password: password.toString()
             });
+
+            console.log('[PID]', process.pid, 'Send Message...');
 
             await new Promise<void>((resolve, reject) => {
                 let sent = false;

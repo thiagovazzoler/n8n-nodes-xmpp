@@ -40,6 +40,7 @@ export class XmppTrigger implements INodeType {
 
   async trigger(this: ITriggerFunctions): Promise<ITriggerResponse> {
     console.log('🚀 Starting XmppTrigger...');
+    console.log('[PID]', process.pid, 'XmppTrigger starting...');
 
     try {
       const credentials = await this.getCredentials('xmppApi');
@@ -51,8 +52,6 @@ export class XmppTrigger implements INodeType {
         username: jid.toString(),
         password: password.toString(),
       });
-
-      xmppClient.options.resource = 'n8n';
 
       xmppClient.on('stanza', async (stanza: any) => {
         if (stanza.is('message') && stanza.getChild('body')) {
@@ -66,10 +65,11 @@ export class XmppTrigger implements INodeType {
             [
               {
                 json: {
-                  from,
                   type,
+                  from,
+                  time: new Date(),
                   body,
-                  stanza: stanza.toString(),
+                  file: {}
                 },
               },
             ],
@@ -154,20 +154,24 @@ export class XmppTrigger implements INodeType {
             if (session) {
               const fileBuffer = Buffer.concat(session.chunks);
               const base64Content = fileBuffer.toString('base64');
+              const message = "file";
 
               // Emitir o arquivo completo via trigger com base64
               const output: INodeExecutionData[] = [
                 {
                   json: {
-                    time: new Date(),
-                    type: 'file',
+                    type: message,
                     from: session.from,
-                    fileName: session.fileName,
-                    size: fileBuffer.length,
-                    mime: 'application/octet-stream',
-                    base64: base64Content,
-                  },
-                },
+                    time: new Date(),
+                    body: "",
+                    file: {
+                      fileName: session.fileName,
+                      size: fileBuffer.length,
+                      mime: 'application/octet-stream',
+                      base64: base64Content
+                    }
+                  }
+                }
               ];
 
               await this.emit([output]);
@@ -191,7 +195,6 @@ export class XmppTrigger implements INodeType {
           await XmppClientSingleton.reset();
         },
       };
-
     }
     catch (error) {
       console.error('Error starting XmppTrigger:', error);

@@ -52,7 +52,7 @@ export class XmppSendFile implements INodeType {
                 displayName: 'File Name',
                 name: 'fileName',
                 type: 'string',
-                default: 'file.pdf',
+                default: 'arquivo.pdf',
             },
         ],
     };
