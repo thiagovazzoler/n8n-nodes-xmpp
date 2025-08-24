@@ -62,6 +62,8 @@ export class XmppSendFile implements INodeType {
         const returnData: INodeExecutionData[] = [];
 
         try {
+            console.log("📤 Begin File Offer Sent");
+
             const credentials = await this.getCredentials('xmppApi');
             const { service, domain, jid, password } = credentials;
 
