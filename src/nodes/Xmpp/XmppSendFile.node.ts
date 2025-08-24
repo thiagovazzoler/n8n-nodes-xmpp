@@ -52,7 +52,7 @@ export class XmppSendFile implements INodeType {
                 displayName: 'File Name',
                 name: 'fileName',
                 type: 'string',
-                default: 'arquivo.pdf',
+                default: 'file.pdf',
             },
         ],
     };
@@ -62,7 +62,7 @@ export class XmppSendFile implements INodeType {
         const returnData: INodeExecutionData[] = [];
 
         try {
-            console.log("📤 Begin File Offer Sent");
+            console.log("📤 1 - Begin File Offer Sent");
 
             const credentials = await this.getCredentials('xmppApi');
             const { service, domain, jid, password } = credentials;
@@ -71,7 +71,7 @@ export class XmppSendFile implements INodeType {
                 service: service.toString(),
                 domain: domain.toString(),
                 username: jid.toString(),
-                password: password.toString(),
+                password: password.toString()
             });
 
             let to = this.getNodeParameter('to', 0) as string;
@@ -130,7 +130,7 @@ export class XmppSendFile implements INodeType {
             const openId = "open-" + uuidv4();
 
             // 2. Escuta resposta do peer
-            xmppClient.on("stanza", async (stanza: any) => {
+            xmppClient.once("stanza", async (stanza: any) => {
                 if (stanza.is("iq") && stanza.attrs.type === "result" && stanza.getChild("si")) {
                     console.log("📩 Peer accepted the offer, trading IBB...");
 

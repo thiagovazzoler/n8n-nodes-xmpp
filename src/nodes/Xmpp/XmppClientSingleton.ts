@@ -15,13 +15,13 @@ class XmppClientSingleton {
         // Construtor privado para evitar instanciações externas
     }
 
-    public static async getInstance(options?: XmppClientOptions): Promise<any> {
+    public static getInstance(options?: XmppClientOptions): Promise<any> {
         if (!XmppClientSingleton.instance) {
             if (!options) {
                 throw new Error('XmppClientSingleton: First call requires connection parameters.');
             }
 
-             console.log('[PID]', process.pid, 'Trigger...');
+            console.log('[PID]', process.pid, 'Trigger...');
 
             const xmpp = client({
                 service: options.service,
@@ -50,7 +50,7 @@ class XmppClientSingleton {
             });
 
             try {
-                await this.instance.start();
+                this.instance.start();
             } catch (err) {
                 this.instance = null;
                 console.error('❌ XMPP client error:', err);
@@ -58,7 +58,7 @@ class XmppClientSingleton {
             }
         }
 
-        return await this.instance;
+        return this.instance;
     }
 
     public static async getJidResource(jidUser: string): Promise<string | null> {
