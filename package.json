@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-xmpp",
-  "version": "1.0.43",
+  "version": "1.0.73",
   "description": "Component for sending files and messages using the XMPP protocol",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -43,8 +43,7 @@
   },
   "n8n": {
     "nodes": [
-      "dist/nodes/Xmpp/XmppSendFile.node.js",
-      "dist/nodes/Xmpp/XmppSendMessage.node.js",
+      "dist/nodes/Xmpp/Xmpp.node.js",
       "dist/nodes/Xmpp/XmppTrigger.node.js"
     ],
     "credentials": [
