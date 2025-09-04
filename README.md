@@ -8,16 +8,18 @@
 [![GitHub stars](https://img.shields.io/github/stars/thiagovazzoler/n8n-nodes-xmpp.svg)](https://github.com/thiagovazzoler/n8n-nodes-xmpp/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Custom [n8n](https://n8n.io) node for integrating with **XMPP servers (Openfire and Spark)**.  
-This node allows you to **send and receive messages via XMPP**, making it easier to automate workflows using instant messaging.
+Custom [n8n](https://n8n.io) node for integrating with **XMPP servers (Openfire and Spark)**. 
+This component allows you **to send and receive messages and files via XMPP**, using **RabbitMQ as a reliable message broker**
 
 ---
 
 ## ✨ Features
-- 🔄 Send XMPP messages to a given JID  
-- 📥 Listen for incoming messages (webhook-like behavior)  
+- 🔄 Send messages via RabbitMQ → XMPP (chat automation)
+- 📥 Receive incoming messages directly from the XMPP protocol
+- 📂 Receive files sent via XMPP, fully parsed and emitted in n8n
 - 📎 Support for file transfer with **XEP-0047 (In-Band Bytestreams)** 
-- 🛠️ Fully compatible with **Openfire** 
+- 🛠️ Fully compatible with **Openfire**     
+- ⚡ Works as a trigger (listens for incoming events) and as an action (send messages/files)
 
 ---
 
@@ -27,3 +29,17 @@ Install the package globally so that n8n can detect it:
 
 ```bash
 npm install -g n8n-nodes-xmpp
+```
+
+## 🚀 Use Cases
+
+ - Build chatbots powered by XMPP + n8n
+ - Automate file delivery between systems over XMPP
+ - Connect business workflows with Spark/Openfire instant messaging
+ - Centralize messaging events in RabbitMQ for scalable processing
+
+## ☕ Support this project
+
+If this component has been useful to you, please consider supporting it with a donation.
+
+PayPal: 👉 [Donate via PayPal](https://www.paypal.com/donate/?hosted_button_id=EWDNREWUM43U4)
