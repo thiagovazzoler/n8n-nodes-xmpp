@@ -12,7 +12,7 @@ export const XmppSendMessageOperationsOptions: INodeProperties = {
     {
       name: 'Enviar mensagem',
       action: 'Enviar mensagem',
-      description: 'Enviar mensagem de texto (chat)',
+      description: 'Enviar mensagem de texto (chat) para a fila de processamento do XmppTrigger',
       value: 'xmpp-sendmessage',
     },
   ],

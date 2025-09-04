@@ -16,7 +16,7 @@ export const XmppSendFileOperationsOptions: INodeProperties = {
             // Create Instance Basic
             name: 'Enviar arquivo',
             action: 'Enviar arquivo',
-            description: 'Enviar um arquivo',
+            description: 'Enviar um arquivo para a fila de processamento do XmppTrigger',
             value: 'xmpp-sendfile',
         }
     ],

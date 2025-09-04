@@ -87,14 +87,18 @@ export default class XmppClientSingleton {
 
                 // Inicia ping keepalive
                 this.startPing(key, opts);
-                if (process.env.DEBUG_XMPP) console.log(`✅ [${key}] XMPP online: ${jid?.toString?.() ?? ''}`);
+
+                if (process.env.DEBUG_XMPP) 
+                    console.log(`✅ [${key}] XMPP online: ${jid?.toString?.() ?? ''}`);
             });
 
             xmpp.on('offline', () => {
                 state.online = false;
                 this.stopPing(key);
                 this.scheduleReconnect(key, opts);
-                if (process.env.DEBUG_XMPP) console.warn(`⚠️ [${key}] XMPP offline`);
+
+                if (process.env.DEBUG_XMPP) 
+                    console.warn(`⚠️ [${key}] XMPP offline`);
             });
 
             xmpp.on('status', (s: string) => {
@@ -139,43 +143,66 @@ export default class XmppClientSingleton {
         }
 
         await xmpp.start();
+
         return xmpp;
     }
 
     /** Envia uma stanza usando a instância (default) */
     public static async send(stanza: any, key: XmppKey = 'default') {
         const st = this.instances.get(key);
-        if (!st?.xmpp) throw new Error(`XMPP[${key}] not started`);
+
+        console.log("Enviando mensagem: " + stanza.toString());
+
+        if (!st?.xmpp)
+            throw new Error(`XMPP[${key}] not started`);
+
         return st.xmpp.send(stanza);
     }
 
     /** Envia uma IQ e aguarda resposta (útil para SI/IBB etc.) */
     public static async sendReceive(stanza: any, key: XmppKey = 'default') {
         const st = this.instances.get(key);
-        if (!st?.xmpp) throw new Error(`XMPP[${key}] not started`);
+
+        if (!st?.xmpp)
+            throw new Error(`XMPP[${key}] not started`);
+
         return st.xmpp.sendReceive(stanza);
     }
 
     /** Inscreve em eventos da instância (stanza, message, error, etc.) */
     public static on(event: string, cb: (...args: any[]) => void, key: XmppKey = 'default') {
         const st = this.instances.get(key);
-        if (!st) throw new Error(`XMPP[${key}] not started`);
+
+        if (!st)
+            throw new Error(`XMPP[${key}] not started`);
+
         st.bus.on(event, cb);
     }
-    
+
     public static off(event: string, cb: (...args: any[]) => void, key: XmppKey = 'default') {
         const st = this.instances.get(key);
-        if (!st) return;
+
+        if (!st)
+            return;
+
         st.bus.off(event, cb);
     }
 
     /** Fecha e limpa somente a instância da chave */
     public static async reset(key: XmppKey = 'default') {
         const st = this.instances.get(key);
-        if (!st) return;
+
+        if (!st)
+            return;
+
         this.stopPing(key);
+
         if (st.xmpp) {
-            try { await st.xmpp.stop(); } catch { }
+            try {
+                await st.xmpp.stop();
+            }
+            catch { }
+
             st.xmpp = null;
         }
         this.instances.delete(key);
@@ -194,7 +221,10 @@ export default class XmppClientSingleton {
 
     private static startPing(key: XmppKey, opts: XmppClientOptions) {
         const st = this.instances.get(key);
-        if (!st) return;
+
+        if (!st) 
+            return;
+
         this.stopPing(key);
 
         const intervalMs = Number(opts.pingIntervalMs ?? 30000);

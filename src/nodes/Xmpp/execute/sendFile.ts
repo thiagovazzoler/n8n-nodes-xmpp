@@ -1,127 +1,64 @@
 import { IExecuteFunctions, NodeOperationError } from 'n8n-workflow';
-import XmppClientSingleton, { xml } from '../XmppClientSingleton';
-import { v4 as uuidv4 } from 'uuid';
+import { RabbitClient } from '../connections/RabbitClient';
+
 
 export async function sendFile(ef: IExecuteFunctions) {
     try {
-        const creds = await ef.getCredentials('xmppApi');
-        const { service, domain, jid, password } = creds;
+        // --- credenciais ---
+        const objCredencial_Rabbit = (await ef.getCredentials('rabbitMqApi')) as any;
 
-        const toBare = ef.getNodeParameter('to', 0) as string;
-        const fileBase64 = ef.getNodeParameter('fileBase64', 0) as string;
+        if (!objCredencial_Rabbit)
+            throw new Error('Credencial de conexão com o RabbitMq não definida.');
+
+        const objCredencial_Xmpp = (await ef.getCredentials('xmppApi')) as any;
+
+        if (!objCredencial_Xmpp)
+            throw new Error('Credencial XMPP não definida');
+
+        // --- fila dinâmica a partir do JID da credencial XMPP ---
+        var nm_Xmpp_JID = String(objCredencial_Xmpp?.jid ?? '');
+
+        if (!nm_Xmpp_JID)
+            throw new Error('Credencial XMPP sem JID.');
+
+        nm_Xmpp_JID = nm_Xmpp_JID.replace(/[^a-zA-Z0-9]/g, '_');
+
+        const nm_Fila_Rabbit = `XMPP_FILE_OUT_${nm_Xmpp_JID}`;
+
+        // --- parâmetros do node ---
+        const to = ef.getNodeParameter('to', 0) as string;
         const fileName = ef.getNodeParameter('fileName', 0) as string;
+        const fileBase64 = ef.getNodeParameter('fileBase64', 0) as string;
 
-        const fileBuffer = Buffer.from(fileBase64, 'base64');
-        const fileSize = fileBuffer.length;
-        const sid = 'sid-' + uuidv4() + '-arquivo';
-        const blockSize = 2048;
+        if (!fileBase64)
+            throw new Error('fileBase64 está vazio.');
 
-        const xmpp = await XmppClientSingleton.getInstance({
-            service: String(service),
-            domain: String(domain),
-            username: String(jid),
-            password: String(password),
-            presence: false,
-            priority: -128,
+        // --- publish no Rabbit (garante/cria a fila) ---
+        const objRabbitClient = RabbitClient.getInstance();
+
+        // --- URL do Rabbit ---
+        const ds_Rabbit_Url = objRabbitClient.Get_Rabbit_Url_Conexao(objCredencial_Rabbit);
+
+        await objRabbitClient.connect({ url: ds_Rabbit_Url });
+        await objRabbitClient.ensureQueue(nm_Fila_Rabbit, { durable: true });
+
+        await objRabbitClient.publish(nm_Fila_Rabbit, {
+            to,
+            file: {
+                name: fileName,
+                base64: fileBase64
+            }
         });
 
-        const toResolved = (await XmppClientSingleton.getJidResource(toBare)) ?? toBare;
-
-        // 1) Oferta (SI)
-        const offerIQ = xml(
-            'iq',
-            { type: 'set', to: toResolved, id: 'offer-1' },
-            xml(
-                'si',
-                {
-                    xmlns: 'http://jabber.org/protocol/si',
-                    id: sid,
-                    'mime-type': 'application/octet-stream',
-                    profile: 'http://jabber.org/protocol/si/profile/file-transfer',
-                },
-                xml(
-                    'file',
-                    {
-                        xmlns: 'http://jabber.org/protocol/si/profile/file-transfer',
-                        name: fileName,
-                        size: fileSize,
-                    },
-                ),
-                xml(
-                    'feature',
-                    { xmlns: 'http://jabber.org/protocol/feature-neg' },
-                    xml(
-                        'x',
-                        { xmlns: 'jabber:x:data', type: 'form' },
-                        xml(
-                            'field',
-                            { var: 'stream-method', type: 'list-single' },
-                            xml('option', {}, xml('value', {}, 'http://jabber.org/protocol/ibb')),
-                        ),
-                    ),
-                ),
-            ),
-        );
-        await xmpp.send(offerIQ);
-
-        const openId = 'open-' + uuidv4();
-
-        // 2) Handshake + envio
-        await new Promise<void>((resolve, reject) => {
-            const onStanza = async (stanza: any) => {
-                try {
-                    if (stanza.is('iq') && stanza.attrs.type === 'result' && stanza.getChild('si')) {
-                        const openIQ = xml(
-                            'iq',
-                            { type: 'set', to: toResolved, id: openId },
-                            xml('open', { xmlns: 'http://jabber.org/protocol/ibb', sid, 'block-size': blockSize, stanza: 'message' }),
-                        );
-                        await xmpp.send(openIQ);
-                        return;
-                    }
-
-                    if (stanza.is('iq') && stanza.attrs.id === openId && stanza.attrs.type === 'result') {
-                        let seq = 0;
-                        for (let offset = 0; offset < fileBuffer.length; offset += blockSize) {
-                            const chunk = fileBuffer.slice(offset, offset + blockSize);
-                            const base64Chunk = chunk.toString('base64');
-                            const dataStanza = xml(
-                                'message',
-                                { to: toResolved },
-                                xml('data', { xmlns: 'http://jabber.org/protocol/ibb', sid, seq: String(seq) }, base64Chunk),
-                            );
-                            await xmpp.send(dataStanza);
-                            seq++;
-                        }
-
-                        const closeIQ = xml(
-                            'iq',
-                            { type: 'set', to: toResolved, id: openId },
-                            xml('close', { xmlns: 'http://jabber.org/protocol/ibb', sid }),
-                        );
-                        await xmpp.send(closeIQ);
-
-                        xmpp.off('stanza', onStanza);
-                        resolve();
-                        return;
-                    }
-                } catch (e) {
-                    xmpp.off('stanza', onStanza);
-                    reject(e);
+        return {
+            json: {
+                status: true,
+                data: {
+                    message: `Arquivo enviado com sucesso para a fila ${nm_Fila_Rabbit}`
                 }
-            };
-
-            xmpp.on('stanza', onStanza);
-            setTimeout(() => {
-                xmpp.off('stanza', onStanza);
-                reject(new Error('Timeout waiting IBB handshake'));
-            }, 30000);
-        });
-
-        return { json: { ok: true, to: toBare, fileName, size: fileSize } };
+            }
+        };
     } catch (error: any) {
         throw new NodeOperationError(ef.getNode(), error.message);
-    } finally {
-        try { await XmppClientSingleton.reset(); } catch { }
     }
 }

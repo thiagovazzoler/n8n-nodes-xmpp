@@ -1,5 +1,8 @@
 import {
+    ICredentialsDecrypted,
+    ICredentialTestFunctions,
     IExecuteFunctions,
+    INodeCredentialTestResult,
     INodeExecutionData,
     INodeType,
     INodeTypeDescription,
@@ -21,7 +24,18 @@ export class Xmpp implements INodeType {
         defaults: { name: 'XMPP' },
         inputs: ['main'],
         outputs: ['main'],
-        credentials: [{ name: 'xmppApi', required: true }],
+        credentials: [
+            {
+                name: 'xmppApi',
+                required: true,
+                displayName: 'Connection XMPP'
+            },
+            {
+                name: 'rabbitMqApi',
+                required: true,
+                displayName: 'Connection RabbitMq'
+            }
+        ],
         // A estrutura de propriedades do nó:
         // • Resources: Recursos disponíveis (Instancia, Mensagens, Eventos, Integrações)
         // • Operations: Operações de cada recurso (Ex: Criar instancia, Enviar mensagem, Definir Webhook)

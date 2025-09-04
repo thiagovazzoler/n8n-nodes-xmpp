@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-xmpp",
-  "version": "1.0.73",
+  "version": "1.0.93",
   "description": "Component for sending files and messages using the XMPP protocol",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -22,24 +22,27 @@
   "author": "Thiago Vazzoler Loureiro <thiago.vazzoler@gmail.com>",
   "license": "MIT",
   "devDependencies": {
+    "@types/amqplib": "^0.10.7",
     "@types/express": "^5.0.3",
     "@types/node": "^24.3.0",
     "@types/uuid": "^10.0.0",
     "@types/xmpp__xml": "^0.13.5",
     "cpx": "^1.5.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.9.2"
   },
   "dependencies": {
     "@xmpp/client": "^0.13.6",
     "@xmpp/xml": "^0.13.3",
+    "amqplib": "^0.10.9",
     "axios": "^1.11.0",
     "express": "^5.1.0",
     "uuid": "^11.1.0"
   },
   "peerDependencies": {
-    "n8n-workflow": "*",
+    "lodash": "*",
     "n8n-core": "*",
-    "lodash": "*"
+    "n8n-workflow": "*"
   },
   "n8n": {
     "nodes": [
@@ -47,7 +50,8 @@
       "dist/nodes/Xmpp/XmppTrigger.node.js"
     ],
     "credentials": [
-      "dist/credentials/XmppApi.credentials.js"
+      "dist/credentials/XmppApi.credentials.js",
+      "dist/credentials/RabbitMqApi.credentials.js"
     ]
   }
 }
