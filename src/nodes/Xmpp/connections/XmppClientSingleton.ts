@@ -95,8 +95,7 @@ export default class XmppClientSingleton {
 
                 state.bus.emit('online', jid);
 
-                // Inicia ping keepalive
-                this.startPing(key, opts);
+                this.Set_Start_Ping(key, opts);
 
                 if (process.env.DEBUG_XMPP)
                     console.log(`✅ [${key}] XMPP online: ${jid?.toString?.() ?? ''}`);
@@ -104,8 +103,9 @@ export default class XmppClientSingleton {
 
             xmpp.on('offline', () => {
                 state.online = false;
-                this.stopPing(key);
-                this.scheduleReconnect(key, opts);
+
+                this.Set_Stop_Ping(key);
+                this.Set_Schedule_Reconnect(key, opts);
 
                 if (process.env.DEBUG_XMPP)
                     console.warn(`⚠️ [${key}] XMPP offline`);
@@ -146,6 +146,7 @@ export default class XmppClientSingleton {
         }
 
         state.xmpp = xmpp;
+
         this.instances.set(key, state);
 
         // Hook de saída do processo para fechar limpo
@@ -209,7 +210,7 @@ export default class XmppClientSingleton {
         if (!st)
             return;
 
-        this.stopPing(key);
+        this.Set_Stop_Ping(key);
 
         if (st.xmpp) {
             try {
@@ -233,13 +234,13 @@ export default class XmppClientSingleton {
 
     // ---------- Internals ----------
 
-    private static startPing(key: XmppKey, opts: XmppClientOptions) {
+    private static Set_Start_Ping(key: XmppKey, opts: XmppClientOptions) {
         const st = this.instances.get(key);
 
         if (!st)
             return;
 
-        this.stopPing(key);
+        this.Set_Stop_Ping(key);
 
         const intervalMs = Number(opts.pingIntervalMs ?? 30000);
         const timeoutMs = Number(opts.pingTimeoutMs ?? 10000);
@@ -271,20 +272,21 @@ export default class XmppClientSingleton {
                 await st.xmpp.send(pingIq);
                 await waiter;
             } catch {
-                // força ciclo de reconexão controlado
-                try { await st.xmpp.stop(); } catch { }
+                try {
+                    await st.xmpp.stop();
+                } catch { }
             }
         }, intervalMs);
     }
 
-    private static stopPing(key: XmppKey) {
+    private static Set_Stop_Ping(key: XmppKey) {
         const st = this.instances.get(key);
         if (!st?.pingTimer) return;
         clearInterval(st.pingTimer);
         st.pingTimer = null;
     }
 
-    private static scheduleReconnect(key: XmppKey, opts: XmppClientOptions) {
+    private static Set_Schedule_Reconnect(key: XmppKey, opts: XmppClientOptions) {
         const st = this.instances.get(key);
         if (!st) return;
 
@@ -301,37 +303,52 @@ export default class XmppClientSingleton {
             try {
                 await this.Get_Instance(opts, key);
             } catch {
-                this.scheduleReconnect(key, opts);
+                this.Set_Schedule_Reconnect(key, opts);
             }
         }, st.reconnectBackoffMs);
     }
 
-    /** Resolve um full JID (com /resource) a partir de um bare JID usando disco#items.
- *  Retorna null se o servidor não responder com itens.
- */
-    public static async getJidResource(jidBare: string, key: string = 'default'): Promise<string | null> {
+    //Retorno o Jid com o resource
+    public static async Get_JID_Resource(jidBare: string, key: string = 'default'): Promise<string | null> {
         const st = this.instances.get(key);
-        if (!st?.xmpp) throw new Error(`XMPP[${key}] not started`);
 
-        const bare = this.bareOf(jidBare);
+        if (!st?.xmpp)
+            throw new Error(`XMPP[${key}] not started`);
 
-        // 1) presence cache
+        // -------- Normalização do bare --------
+        let bare = this.bareOf(jidBare?.trim?.() || '');
+
+        if (!bare.includes('@')) {
+            throw new Error('Xmpp domain not set in instance; cannot normalize bare JID');
+        }
+
+        // 1) Presence cache (melhor caminho)
         const idx = this.presenceByKey.get(key);
         const cached = idx?.get(bare)?.full;
-        if (cached && cached.includes('/')) return cached;
 
-        // 2) disco#info (alguns servidores retornam 'from' já com /resource)
+        if (cached && cached.includes('/'))
+            return cached;
+
+        // 2) Presence probe (funciona mesmo sem roster "both", desde que o servidor permita)
+        const probed = await this.Get_Presence_JID_Probe_And_Wait(bare, key, 1200);
+
+        if (probed && probed.startsWith(bare + '/'))
+            return probed;
+
+        // 3) disco#info — aceite só se 'from' pertencer ao bare e tiver /resource
         try {
             const infoId = `disco-info:${Date.now()}`;
             const iqInfo = xml('iq', { type: 'get', to: bare, id: infoId },
                 xml('query', { xmlns: 'http://jabber.org/protocol/disco#info' }),
             );
             const resp = await st.xmpp.sendReceive(iqInfo);
-            const from = resp?.attrs?.from;
-            if (typeof from === 'string' && from.includes('/')) return from;
+            const from = resp?.attrs?.from as string | undefined;
+
+            if (from && from.startsWith(bare + '/'))
+                return from;
         } catch { }
 
-        // 3) disco#items (fallback antigo)
+        // 4) disco#items — pegue somente items do bare (com /resource)
         try {
             const itemsId = `disco-items:${Date.now()}`;
             const iq = xml('iq', { type: 'get', to: bare, id: itemsId },
@@ -339,13 +356,61 @@ export default class XmppClientSingleton {
             );
             const response = await st.xmpp.sendReceive(iq);
             const queryEl = response.getChild('query', 'http://jabber.org/protocol/disco#items');
-            const itemEl = queryEl?.getChild('item');
-            const fullJid = itemEl?.attrs?.jid;
-            if (typeof fullJid === 'string' && fullJid.includes('/')) return fullJid;
+            const items = (queryEl?.getChildren?.('item') ?? []) as any[];
+            for (const it of items) {
+                const j = it?.attrs?.jid as string | undefined;
+                if (j && j.startsWith(bare + '/')) return j;
+            }
         } catch { }
 
         return null;
     }
+
+    private static async Get_Presence_JID_Probe_And_Wait(bare: string, key: XmppKey = 'default', waitMs = 1200): Promise<string | null> {
+        const st = this.instances.get(key);
+
+        if (!st?.xmpp)
+            throw new Error(`XMPP[${key}] not started`);
+
+        const candidates: Array<{ full: string; prio: number; when: number }> = [];
+
+        const onPresence = (s: any) => {
+            if (!s.is('presence'))
+                return;
+
+            const from = s.attrs?.from as string | undefined;
+
+            if (!from || !from.startsWith(bare + '/'))
+                return;
+
+            if (s.attrs?.type === 'unavailable')
+                return;
+
+            const pEl = s.getChild('priority');
+            const prio = pEl ? Number(pEl.getText() || '0') : 0;
+            candidates.push({ full: from, prio: Number.isFinite(prio) ? prio : 0, when: Date.now() });
+        };
+
+        st.xmpp.on('stanza', onPresence);
+
+        try {
+            await st.xmpp.send(xml('presence', { type: 'probe', to: bare }));
+            await new Promise<void>((r) => setTimeout(r, waitMs));
+
+            if (!candidates.length) return null;
+
+            candidates.sort((a, b) => (b.prio - a.prio) || (b.when - a.when));
+            const top = candidates[0];
+
+            if (!this.presenceByKey.has(key)) this.presenceByKey.set(key, new Map());
+            this.presenceByKey.get(key)!.set(bare, top);
+
+            return top.full;
+        } finally {
+            st.xmpp.off('stanza', onPresence);
+        }
+    }
+
 
     public static async Get_Wait_Until_Online(key: string = 'default', timeoutMs = 20000) {
         const st = this.instances.get(key);

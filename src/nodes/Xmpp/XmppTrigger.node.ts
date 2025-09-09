@@ -52,7 +52,6 @@ export class XmppTrigger implements INodeType {
             const workflowId = String(this.getWorkflow().id);
             const cd_Key = `trigger:${workflowId}`;
 
-            // XMPP online com presença/priority
             const objXmppClient = await XmppClientSingleton.Get_Instance({
                 service: String(objCredencial_Xmpp.service),
                 domain: String(objCredencial_Xmpp.domain),
@@ -64,7 +63,6 @@ export class XmppTrigger implements INodeType {
 
             await XmppClientSingleton.Get_Wait_Until_Online(cd_Key, 20000);
 
-            // Rabbit
             const objRabbitClient = RabbitClient.getInstance();
 
             const ds_Rabbit_Url = objRabbitClient.Get_Rabbit_Url_Conexao(objCredencial_Rabbit);
@@ -85,8 +83,8 @@ export class XmppTrigger implements INodeType {
 
             await objRabbitClient.setPrefetch(10);
 
-            // --------- REGISTRA EVENTO DE RECEBIMENTO DE MENSAGENS VIA XMPP ----------
-            const onMessage = async (evt: any) => {
+            //#region 1 - XMPP - REGISTRA EVENTO DE RECEBIMENTO DE MENSAGENS VIA XMPP
+            const Event_On_Message = async (evt: any) => {
                 await this.emit([[{
                     json: {
                         status: true,
@@ -100,35 +98,15 @@ export class XmppTrigger implements INodeType {
                 }]]);
             };
 
-            XmppClientSingleton.Set_Event_On('message', onMessage, cd_Key);
+            XmppClientSingleton.Set_Event_On('message', Event_On_Message, cd_Key);
+            //#endregion
 
-            // --------- REGISTRA EVENTO DE RECBIMENTO DE ARQUIVOS VIA XMPP (SI+IBB) ----------
+            //#region 2 - XMPP - REGISTRA EVENTO DE RECBIMENTO DE ARQUIVOS VIA XMPP (SI+IBB) 
             const sessions = new Map<string, IbbSession>();
             const timers = new Map<string, NodeJS.Timeout>();
 
-            const armTimeout = (sid: string) => {
-                const prev = timers.get(sid);
+            const Event_On_Stanza = async (stanza: any) => {
 
-                if (prev)
-                    clearTimeout(prev);
-
-                const t = setTimeout(() => { sessions.delete(sid); timers.delete(sid); }, Math.max(5, ibbTimeoutSec) * 1000);
-
-                timers.set(sid, t);
-            };
-
-            const clearSession = (sid: string) => {
-                const p = timers.get(sid);
-
-                if (p)
-                    clearTimeout(p);
-
-                timers.delete(sid);
-
-                sessions.delete(sid);
-            };
-
-            const onStanza = async (stanza: any) => {
                 if (emitRaw)
                     await this.emit([[{ json: { type: 'raw-stanza', xml: stanza?.toString?.() ?? '', time: new Date() } }]]);
 
@@ -180,7 +158,12 @@ export class XmppTrigger implements INodeType {
 
                         if (s) {
                             s.blockSize = open.attrs['block-size'] ? Number(open.attrs['block-size']) : undefined;
+
+                            // >>> ADICIONE ESTA LINHA:
+                            (s as any).stanzaMode = (open.attrs['stanza'] === 'message') ? 'message' : 'iq';
+
                             sessions.set(sid, s);
+
                             armTimeout(sid);
                         }
 
@@ -205,6 +188,28 @@ export class XmppTrigger implements INodeType {
                             sessions.get(sid)!.chunks.push(dataEl.getText() || '');
                             armTimeout(sid);
                         }
+
+                        return;
+                    }
+                }
+
+                // IBB data via IQ (stanza='iq')
+                if (stanza.is('iq') && stanza.attrs.type === 'set') {
+                    const dataIq = stanza.getChild('data', 'http://jabber.org/protocol/ibb');
+
+                    if (dataIq) {
+                        const sid = dataIq.attrs.sid;
+
+                        if (sid && sessions.has(sid)) {
+                            sessions.get(sid)!.chunks.push(dataIq.getText() || '');
+
+                            armTimeout(sid);
+                        }
+                        
+                        // ACK obrigatório para cada chunk em modo IQ
+                        const ack = xml('iq', { type: 'result', to: stanza.attrs.from, id: stanza.attrs.id });
+
+                        await XmppClientSingleton.Set_Event_Send(ack, cd_Key);
 
                         return;
                     }
@@ -249,10 +254,11 @@ export class XmppTrigger implements INodeType {
                 }
             };
 
-            XmppClientSingleton.Set_Event_On('stanza', onStanza, cd_Key);
+            XmppClientSingleton.Set_Event_On('stanza', Event_On_Stanza, cd_Key);
+            //#endregion
 
-            // --------- consumidores: enviar pelo XMPP a partir do Rabbit ----------
-            // mensagens
+            //#region 3 - TABBIT - CONSUMIDORES: ENVIAR PELO XMPP A PARTIR DO RABBIT --------
+            //3.1 - FILA DE MENSAGENS
             await objRabbitClient.consume(nm_Fila_Rabbit_Mensagem, async (msg, ch) => {
 
                 if (!msg)
@@ -265,7 +271,7 @@ export class XmppTrigger implements INodeType {
 
                     const nm_To = String(objMsg.to);
                     const ds_Body = String(objMsg.body ?? objMsg.message ?? '');
-                    const ds_Stanza = xml('message', { type: 'chat', nm_To }, xml('body', {}, ds_Body));
+                    const ds_Stanza = xml('message', { type: 'chat', to: nm_To }, xml('body', {}, ds_Body));
 
                     console.log("Mensagem a ser enviada: " + ds_Stanza.toString());
 
@@ -281,7 +287,7 @@ export class XmppTrigger implements INodeType {
                 }
             });
 
-            // arquivos via IBB
+            //3.2 - FILA DE ARQUIVOS
             await objRabbitClient.consume(nm_Fila_Rabbit_Arquivos, async (msg, ch) => {
 
                 if (!msg)
@@ -309,10 +315,33 @@ export class XmppTrigger implements INodeType {
                     ch.nack(msg, false, false);
                 }
             });
+            //#endregion
+
+            const armTimeout = (sid: string) => {
+                const prev = timers.get(sid);
+
+                if (prev)
+                    clearTimeout(prev);
+
+                const t = setTimeout(() => { sessions.delete(sid); timers.delete(sid); }, Math.max(5, ibbTimeoutSec) * 1000);
+
+                timers.set(sid, t);
+            };
+
+            const clearSession = (sid: string) => {
+                const p = timers.get(sid);
+
+                if (p)
+                    clearTimeout(p);
+
+                timers.delete(sid);
+
+                sessions.delete(sid);
+            };
 
             const offFns = [
-                () => XmppClientSingleton.Set_Event_Off('message', onMessage, cd_Key),
-                () => XmppClientSingleton.Set_Event_Off('stanza', onStanza, cd_Key),
+                () => XmppClientSingleton.Set_Event_Off('message', Event_On_Message, cd_Key),
+                () => XmppClientSingleton.Set_Event_Off('stanza', Event_On_Stanza, cd_Key),
             ];
 
             return {
@@ -342,22 +371,23 @@ export class XmppTrigger implements INodeType {
     }
 }
 
+//ENVIAR ARQUIVOS PARA UM JID VIA XMPP
 async function Set_Enviar_Arquivo_XMPP(args: { xmpp: any; cd_Key: string; nm_To_JID: string; nm_File: string; ds_File_Base64: string; }) {
-    
+
     const { xmpp, cd_Key, nm_To_JID, nm_File, ds_File_Base64 } = args;
 
-    const toFull = (await (XmppClientSingleton as any).getFullJid?.(nm_To_JID, cd_Key)) ?? nm_To_JID;
+    const nm_To_JID_Full = (await (XmppClientSingleton as any).Get_JID_Resource?.(nm_To_JID, cd_Key)) ?? nm_To_JID;
 
-    if (!toFull.includes('/')) {
-        console.warn(`[XMPP_TRIGGER][FILE] Aviso: enviando para bare JID "${toFull}" (sem /resource). O servidor precisa rotear para o resource correto ou o handshake IBB pode falhar.`);
+    if (!nm_To_JID_Full.includes('/')) {
+        console.warn(`[XMPP_TRIGGER][FILE] Aviso: enviando para bare JID "${nm_To_JID_Full}" (sem /resource). O servidor precisa rotear para o resource correto ou o handshake IBB pode falhar.`);
     } else {
-        console.log(`[XMPP_TRIGGER][FILE] Destino full JID resolvido: ${toFull}`);
+        console.log(`[XMPP_TRIGGER][FILE] Destino full JID resolvido: ${nm_To_JID_Full}`);
     }
 
     const fileBuffer = Buffer.from(ds_File_Base64, 'base64'); const fileSize = fileBuffer.length;
     const sid = 'sid-' + uuidv4(); const blockSize = 2048;
 
-    const offerIQ = xml('iq', { type: 'set', to : toFull, id: 'offer-' + sid },
+    const offerIQ = xml('iq', { type: 'set', to: nm_To_JID_Full, id: 'offer-' + sid },
         xml('si', { xmlns: 'http://jabber.org/protocol/si', id: sid, 'mime-type': 'application/octet-stream', profile: 'http://jabber.org/protocol/si/profile/file-transfer' },
             xml('file', { xmlns: 'http://jabber.org/protocol/si/profile/file-transfer', name: nm_File, size: fileSize }),
             xml('feature', { xmlns: 'http://jabber.org/protocol/feature-neg' },
@@ -373,7 +403,7 @@ async function Set_Enviar_Arquivo_XMPP(args: { xmpp: any; cd_Key: string; nm_To_
         const onStanza = async (stanza: any) => {
             try {
                 if (stanza.is('iq') && stanza.attrs.type === 'result' && stanza.getChild('si')) {
-                    const openIQ = xml('iq', { type: 'set', to  : toFull, id: openId },
+                    const openIQ = xml('iq', { type: 'set', to: nm_To_JID_Full, id: openId },
                         xml('open', { xmlns: 'http://jabber.org/protocol/ibb', sid, 'block-size': blockSize, stanza: 'message' }));
 
                     await xmpp.send(openIQ); return;
@@ -384,11 +414,11 @@ async function Set_Enviar_Arquivo_XMPP(args: { xmpp: any; cd_Key: string; nm_To_
                     for (let off = 0; off < fileBuffer.length; off += blockSize) {
                         const chunk = fileBuffer.slice(off, off + blockSize);
                         const b64 = chunk.toString('base64');
-                        const dataStanza = xml('message', { to : toFull }, xml('data', { xmlns: 'http://jabber.org/protocol/ibb', sid, seq: String(seq) }, b64));
+                        const dataStanza = xml('message', { to: nm_To_JID_Full }, xml('data', { xmlns: 'http://jabber.org/protocol/ibb', sid, seq: String(seq) }, b64));
 
                         await xmpp.send(dataStanza); seq++;
                     }
-                    const closeIQ = xml('iq', { type: 'set', to: toFull, id: openId }, xml('close', { xmlns: 'http://jabber.org/protocol/ibb', sid }));
+                    const closeIQ = xml('iq', { type: 'set', to: nm_To_JID_Full, id: openId }, xml('close', { xmlns: 'http://jabber.org/protocol/ibb', sid }));
 
                     await xmpp.send(closeIQ);
 
@@ -406,7 +436,7 @@ async function Set_Enviar_Arquivo_XMPP(args: { xmpp: any; cd_Key: string; nm_To_
         XmppClientSingleton.Set_Event_On('stanza', onStanza, cd_Key);
 
         setTimeout(() => {
-             XmppClientSingleton.Set_Event_Off('stanza', onStanza, cd_Key); reject(new Error('Timeout waiting IBB handshake')); 
-            }, 30000);
+            XmppClientSingleton.Set_Event_Off('stanza', onStanza, cd_Key); reject(new Error('Timeout waiting IBB handshake'));
+        }, 30000);
     });
 }
