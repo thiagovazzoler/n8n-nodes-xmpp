@@ -7,7 +7,7 @@ import { XmppSendMessageFields } from './XmppSendMessage.fields';
 import { XmppSendMessageOperationsOptions } from './XmppSendMessage.operations';
 
 const resourcesOptions: INodeProperties = {
-  displayName: 'Recurso',
+  displayName: 'Resource',
   name: 'resource',
   type: 'options',
   noDataExpression: true,

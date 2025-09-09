@@ -19,6 +19,11 @@ export class Xmpp implements INodeType {
         subtitle: '={{$parameter["operation"]}}',
         description: 'Interact with XMPP',
         defaults: { name: 'XMPP' },
+        codex: {
+            categories: ['Communication'],
+            subcategories: { Communication: ['XMPP'] },
+            alias: ['XMPP'],
+        },
         inputs: ['main'],
         outputs: ['main'],
         credentials: [

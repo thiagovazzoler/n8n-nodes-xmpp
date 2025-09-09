@@ -14,13 +14,18 @@ type IbbSession = {
 
 export class XmppTrigger implements INodeType {
     description: INodeTypeDescription = {
-        displayName: 'XMPP Listener',
+        displayName: 'XMPP Trigger',
         name: 'xmppTrigger',
         icon: 'file:xmpp.png',
         group: ['trigger'],
-        version: 1,
+        version: 2,
+        codex: {
+            categories: ['Communication'],
+            subcategories: { Communication: ['XMPP'] },
+            alias: ['XMPP'], 
+        },
         description: 'XMPP listener (messages and files) and Rabbit Queues (message and file sending commands).',
-        defaults: { name: 'XMPP Listener' },
+        defaults: { name: 'XMPP Trigger' },
         inputs: [],
         outputs: ['main'],
         credentials: [
