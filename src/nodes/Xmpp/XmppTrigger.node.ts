@@ -19,7 +19,7 @@ export class XmppTrigger implements INodeType {
         icon: 'file:xmpp.png',
         group: ['trigger'],
         version: 1,
-        description: 'Escuta XMPP (mensagens e arquivos) e Filas do Rabbit (comandos de envio de mensagens e arquivos).',
+        description: 'XMPP listener (messages and files) and Rabbit Queues (message and file sending commands).',
         defaults: { name: 'XMPP Listener' },
         inputs: [],
         outputs: ['main'],
@@ -39,12 +39,12 @@ export class XmppTrigger implements INodeType {
             const objCredencial_Xmpp = (await this.getCredentials('xmppApi')) as any;
 
             if (!objCredencial_Xmpp)
-                throw new Error('Credencial XMPP não definida');
+                throw new Error('XMPP Credential Not Set.');
 
             const objCredencial_Rabbit = (await this.getCredentials('rabbitMqApi')) as any;
 
             if (!objCredencial_Rabbit)
-                throw new Error('Credencial de conexão com o RabbitMq não definida.');
+                throw new Error('RabbitMq connection credential not defined.');
 
             const xmpp_Prioridade = this.getNodeParameter('priority', 0) as number;
             const emitRaw = this.getNodeParameter('emitRaw', 0) as boolean;
@@ -141,7 +141,7 @@ export class XmppTrigger implements INodeType {
                             ),
                         );
 
-                        console.log(`Oferta de arquivo: ${acceptIQ}`);
+                        console.log(`Archive offer: ${acceptIQ}`);
 
                         await XmppClientSingleton.Set_Event_Send(acceptIQ, cd_Key);
 
@@ -159,7 +159,6 @@ export class XmppTrigger implements INodeType {
                         if (s) {
                             s.blockSize = open.attrs['block-size'] ? Number(open.attrs['block-size']) : undefined;
 
-                            // >>> ADICIONE ESTA LINHA:
                             (s as any).stanzaMode = (open.attrs['stanza'] === 'message') ? 'message' : 'iq';
 
                             sessions.set(sid, s);
@@ -205,7 +204,7 @@ export class XmppTrigger implements INodeType {
 
                             armTimeout(sid);
                         }
-                        
+
                         // ACK obrigatório para cada chunk em modo IQ
                         const ack = xml('iq', { type: 'result', to: stanza.attrs.from, id: stanza.attrs.id });
 
@@ -236,7 +235,7 @@ export class XmppTrigger implements INodeType {
                                     status: true,
                                     data: {
                                         type: 'file',
-                                        body: `Arquivo ${sess.fileName} recebido de ${sess.from}`,
+                                        body: `File ${sess.fileName} received from ${sess.from}`,
                                         from: sess.from,
                                         file: {
                                             fileName: sess.fileName,
@@ -294,7 +293,7 @@ export class XmppTrigger implements INodeType {
                     return;
 
                 try {
-                    console.log("Enviando arquivo... ");
+                    console.log("Uploading file...");
 
                     const objMsg = JSON.parse(msg.content.toString());
 
@@ -306,11 +305,11 @@ export class XmppTrigger implements INodeType {
                         ds_File_Base64: String(objMsg.file.base64 ?? ''),
                     });
 
-                    console.log("Arquivo enviado com sucesso...");
+                    console.log("File sent successfully...");
 
                     ch.ack(msg);
                 } catch (err: any) {
-                    console.error('[XMPP_TRIGGER][FILE] Erro ao enviar arquivo:', err?.message || err);
+                    console.error('[XMPP_TRIGGER][FILE] Error uploading file:', err?.message || err);
 
                     ch.nack(msg, false, false);
                 }
@@ -379,9 +378,9 @@ async function Set_Enviar_Arquivo_XMPP(args: { xmpp: any; cd_Key: string; nm_To_
     const nm_To_JID_Full = (await (XmppClientSingleton as any).Get_JID_Resource?.(nm_To_JID, cd_Key)) ?? nm_To_JID;
 
     if (!nm_To_JID_Full.includes('/')) {
-        console.warn(`[XMPP_TRIGGER][FILE] Aviso: enviando para bare JID "${nm_To_JID_Full}" (sem /resource). O servidor precisa rotear para o resource correto ou o handshake IBB pode falhar.`);
+        console.warn(`[XMPP_TRIGGER][FILE] Warning: Sending to bare JID "${nm_To_JID_Full}" (no /resource). The server needs to route to the correct resource or the IBB handshake may fail.`);
     } else {
-        console.log(`[XMPP_TRIGGER][FILE] Destino full JID resolvido: ${nm_To_JID_Full}`);
+        console.log(`[XMPP_TRIGGER][FILE] Full JID destination resolved: ${nm_To_JID_Full}`);
     }
 
     const fileBuffer = Buffer.from(ds_File_Base64, 'base64'); const fileSize = fileBuffer.length;

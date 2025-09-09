@@ -29,7 +29,6 @@ type InstanceState = {
 
 
 function randomId(len = 8) {
-    // Gera id curto, compatível mesmo sem crypto.randomUUID
     return Math.random().toString(36).slice(2, 2 + len);
 }
 
@@ -42,7 +41,6 @@ export default class XmppClientSingleton {
         return jid.includes('/') ? jid.split('/')[0] : jid;
     }
 
-    /** Retorna (ou cria) uma instância nomeada. Use chaves diferentes para trigger e actions. */
     public static async Get_Instance(
         opts: XmppClientOptions,
         key: XmppKey = 'default',
@@ -97,8 +95,7 @@ export default class XmppClientSingleton {
 
                 this.Set_Start_Ping(key, opts);
 
-                if (process.env.DEBUG_XMPP)
-                    console.log(`✅ [${key}] XMPP online: ${jid?.toString?.() ?? ''}`);
+                console.log(`✅ [${key}] XMPP online: ${jid?.toString?.() ?? ''}`);
             });
 
             xmpp.on('offline', () => {
@@ -107,19 +104,17 @@ export default class XmppClientSingleton {
                 this.Set_Stop_Ping(key);
                 this.Set_Schedule_Reconnect(key, opts);
 
-                if (process.env.DEBUG_XMPP)
-                    console.warn(`⚠️ [${key}] XMPP offline`);
+                console.warn(`⚠️ [${key}] XMPP offline`);
             });
 
             xmpp.on('status', (s: string) => {
-                if (process.env.DEBUG_XMPP)
-                    console.log(`📡 [${key}] status:`, s);
+                console.log(`📡 [${key}] status:`, s);
             });
 
             xmpp.on('error', (err: any) => {
                 state.bus.emit('error', err);
-                if (process.env.DEBUG_XMPP)
-                    console.error(`❌ [${key}] XMPP error:`, err?.message || err);
+
+                console.error(`❌ [${key}] XMPP error:`, err?.message || err);
             });
 
             // Multiplexa stanzas para quem quiser ouvir
@@ -138,7 +133,7 @@ export default class XmppClientSingleton {
                         });
                     }
                 } catch (e) {
-                    if (process.env.DEBUG_XMPP) console.error(`❌ [${key}] stanza handler error:`, e);
+                    console.error(`❌ [${key}] stanza handler error:`, e);
                 }
             });
 
@@ -232,8 +227,6 @@ export default class XmppClientSingleton {
         if (!onExit) this.exitHookAttached = false;
     }
 
-    // ---------- Internals ----------
-
     private static Set_Start_Ping(key: XmppKey, opts: XmppClientOptions) {
         const st = this.instances.get(key);
 
@@ -261,7 +254,9 @@ export default class XmppClientSingleton {
                         resolve();
                     }
                 };
+
                 st.xmpp.on('stanza', onStanza);
+                
                 timeout = setTimeout(() => {
                     st.xmpp.off('stanza', onStanza);
                     reject(new Error('Ping timeout'));
@@ -281,8 +276,12 @@ export default class XmppClientSingleton {
 
     private static Set_Stop_Ping(key: XmppKey) {
         const st = this.instances.get(key);
-        if (!st?.pingTimer) return;
+
+        if (!st?.pingTimer)
+            return;
+
         clearInterval(st.pingTimer);
+
         st.pingTimer = null;
     }
 

@@ -1,7 +1,7 @@
 import { INodeProperties } from 'n8n-workflow';
 
 export const XmppSendMessageOperationsOptions: INodeProperties = {
-  displayName: 'Operação',
+  displayName: 'Operation',
   name: 'operation',
   type: 'options',
   noDataExpression: true,
@@ -10,9 +10,9 @@ export const XmppSendMessageOperationsOptions: INodeProperties = {
   },
   options: [
     {
-      name: 'Enviar mensagem',
-      action: 'Enviar mensagem',
-      description: 'Enviar mensagem de texto (chat) para a fila de processamento do XmppTrigger',
+      name: 'Send message',
+      action: 'Send message',
+      description: 'Send text message (chat) to RabbitMq processing queue to be sent to XmppTrigger',
       value: 'xmpp-sendmessage',
     },
   ],

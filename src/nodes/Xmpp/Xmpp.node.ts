@@ -46,7 +46,7 @@ export class Xmpp implements INodeType {
 
         const fn = xmppNodeExecute?.[resource]?.[operation];
         if (!fn) {
-            throw new NodeOperationError(this.getNode(), `Operação não suportada: ${resource}/${operation}`);
+            throw new NodeOperationError(this.getNode(), `Operation not supported: ${resource}/${operation}`);
         }
 
         const item = await fn(this);

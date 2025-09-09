@@ -8,18 +8,18 @@ export async function sendFile(ef: IExecuteFunctions) {
         const objCredencial_Rabbit = (await ef.getCredentials('rabbitMqApi')) as any;
 
         if (!objCredencial_Rabbit)
-            throw new Error('Credencial de conexão com o RabbitMq não definida.');
+            throw new Error('RabbitMq connection credential not defined.');
 
         const objCredencial_Xmpp = (await ef.getCredentials('xmppApi')) as any;
 
         if (!objCredencial_Xmpp)
-            throw new Error('Credencial XMPP não definida');
+            throw new Error('XMPP Credential Not Set.');
 
         // --- fila dinâmica a partir do JID da credencial XMPP ---
         var nm_Xmpp_JID = String(objCredencial_Xmpp?.jid ?? '');
 
         if (!nm_Xmpp_JID)
-            throw new Error('Credencial XMPP sem JID.');
+            throw new Error('XMPP Credential without JID.');
 
         nm_Xmpp_JID = nm_Xmpp_JID.replace(/[^a-zA-Z0-9]/g, '_');
 
@@ -31,7 +31,7 @@ export async function sendFile(ef: IExecuteFunctions) {
         const ds_File_Base64 = ef.getNodeParameter('fileBase64', 0) as string;
 
         if (!ds_File_Base64)
-            throw new Error('fileBase64 está vazio.');
+            throw new Error('fileBase64 is empty.');
 
         // --- publish no Rabbit (garante/cria a fila) ---
         const objRabbitClient = RabbitClient.getInstance();
@@ -54,7 +54,7 @@ export async function sendFile(ef: IExecuteFunctions) {
             json: {
                 status: true,
                 data: {
-                    message: `Arquivo enviado com sucesso para a fila ${nm_Fila_Rabbit}`
+                    message: `File successfully sent to queue ${nm_Fila_Rabbit}`
                 }
             }
         };

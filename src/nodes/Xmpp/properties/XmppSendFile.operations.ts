@@ -1,7 +1,7 @@
 import { INodeProperties } from 'n8n-workflow';
 
 export const XmppSendFileOperationsOptions: INodeProperties = {
-    displayName: 'Operação',
+    displayName: 'Operation',
     name: 'operation',
     type: 'options',
     noDataExpression: true,
@@ -14,9 +14,9 @@ export const XmppSendFileOperationsOptions: INodeProperties = {
     options: [
         {
             // Create Instance Basic
-            name: 'Enviar arquivo',
-            action: 'Enviar arquivo',
-            description: 'Enviar um arquivo para a fila de processamento do XmppTrigger',
+            name: 'Send file',
+            action: 'Send file',
+            description: 'Send a file to the RabbitMq processing queue to be sent to XmppTrigger',
             value: 'xmpp-sendfile',
         }
     ],

@@ -12,8 +12,8 @@ const resourcesOptions: INodeProperties = {
   type: 'options',
   noDataExpression: true,
   options: [
-    { name: 'Mensagem', value: 'xmpp-message' },
-    { name: 'Arquivo', value: 'xmpp-file' },
+    { name: 'Message', value: 'xmpp-message' },
+    { name: 'File', value: 'xmpp-file' },
   ],
   // ⚠️ o default anterior era 'xmpp-resource' (inválido).
   default: 'xmpp-message',

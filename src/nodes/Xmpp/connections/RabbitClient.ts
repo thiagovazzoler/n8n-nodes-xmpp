@@ -1,16 +1,13 @@
-// Compatível mesmo quando as tipagens de amqplib não estão disponíveis/compatíveis
 import * as amqp from 'amqplib';
 
 export interface RabbitConfig {
-    url: string; // amqp(s)://user:pass@host:5672/vhost
+    url: string;
 }
 
-// Tipos mínimos locais para evitar erros de compilação
 type AmqpConnection = any;
 type AmqpChannel = any;
 type ConsumeMessage = any;
 
-// Opções mínimas usadas por assertQueue; expanda se precisar (DLQ, TTL, etc.)
 export type QueueOptions = {
     durable?: boolean;
     exclusive?: boolean;
@@ -86,8 +83,11 @@ export class RabbitClient {
         message: unknown,
         options: QueueOptions = { durable: true },
     ): Promise<void> {
-        if (!this.channel) throw new Error('RabbitMQ channel not initialized');
+        if (!this.channel)
+            throw new Error('RabbitMQ channel not initialized');
+
         await this.channel.assertQueue(queueName, options);
+
         this.channel.sendToQueue(
             queueName,
             Buffer.from(JSON.stringify(message)),
@@ -108,6 +108,7 @@ export class RabbitClient {
             throw new Error('RabbitMQ channel not initialized');
 
         await this.channel.assertQueue(queueName, options);
+
         await this.channel.consume(queueName, (msg: ConsumeMessage | null) =>
             onMessage(msg, this.channel!),
         );
@@ -115,8 +116,21 @@ export class RabbitClient {
 
     /** Fecha canal e conexão */
     public async Set_Fechar_Conexao(): Promise<void> {
-        if (this.channel) { try { await this.channel.close(); } catch { } this.channel = null; }
-        if (this.connection) { try { await this.connection.close(); } catch { } this.connection = null; }
+        if (this.channel) {
+            try {
+                await this.channel.close();
+            } catch { }
+
+            this.channel = null;
+        }
+
+        if (this.connection) {
+            try {
+                await this.connection.close();
+            } catch { }
+
+            this.connection = null;
+        }
     }
 
     public Get_Rabbit_Url_Conexao(r: any): string {
