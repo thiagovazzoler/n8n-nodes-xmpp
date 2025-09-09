@@ -26,11 +26,11 @@ export async function sendFile(ef: IExecuteFunctions) {
         const nm_Fila_Rabbit = `XMPP_FILE_OUT_${nm_Xmpp_JID}`;
 
         // --- parâmetros do node ---
-        const to = ef.getNodeParameter('to', 0) as string;
-        const fileName = ef.getNodeParameter('fileName', 0) as string;
-        const fileBase64 = ef.getNodeParameter('fileBase64', 0) as string;
+        const nm_To_JID = ef.getNodeParameter('to', 0) as string;
+        const nm_File = ef.getNodeParameter('fileName', 0) as string;
+        const ds_File_Base64 = ef.getNodeParameter('fileBase64', 0) as string;
 
-        if (!fileBase64)
+        if (!ds_File_Base64)
             throw new Error('fileBase64 está vazio.');
 
         // --- publish no Rabbit (garante/cria a fila) ---
@@ -43,10 +43,10 @@ export async function sendFile(ef: IExecuteFunctions) {
         await objRabbitClient.ensureQueue(nm_Fila_Rabbit, { durable: true });
 
         await objRabbitClient.publish(nm_Fila_Rabbit, {
-            to,
+            to : nm_To_JID,
             file: {
-                name: fileName,
-                base64: fileBase64
+                name: nm_File,
+                base64: ds_File_Base64
             }
         });
 

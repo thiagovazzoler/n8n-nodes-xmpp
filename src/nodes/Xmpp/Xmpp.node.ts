@@ -1,8 +1,5 @@
 import {
-    ICredentialsDecrypted,
-    ICredentialTestFunctions,
     IExecuteFunctions,
-    INodeCredentialTestResult,
     INodeExecutionData,
     INodeType,
     INodeTypeDescription,

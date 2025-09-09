@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-xmpp",
-  "version": "1.0.93",
+  "version": "1.0.104",
   "description": "Component for sending files and messages using the XMPP protocol",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
