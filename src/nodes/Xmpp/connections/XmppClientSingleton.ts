@@ -25,8 +25,10 @@ type InstanceState = {
     pingTimer: NodeJS.Timeout | null;
     reconnectBackoffMs: number;
     listenersBound: boolean;
+    refCount: number;
+    idleTimer?: NodeJS.Timeout | null;
+    keepAlive?: boolean;
 };
-
 
 function randomId(len = 8) {
     return Math.random().toString(36).slice(2, 2 + len);
@@ -55,6 +57,9 @@ export default class XmppClientSingleton {
             pingTimer: null,
             reconnectBackoffMs: 0,
             listenersBound: false,
+            refCount: 0,
+            idleTimer: null,
+            keepAlive: true,
         };
 
         // Resource aleatório por padrão
@@ -157,6 +162,65 @@ export default class XmppClientSingleton {
         return xmpp;
     }
 
+    public static async Set_Acquire(
+        opts: XmppClientOptions,
+        key: XmppKey = 'default',
+        options?: { keepAlive?: boolean; idleTtlMs?: number }
+    ) {
+        const existing = this.instances.get(key);
+        const xmpp = existing?.xmpp ?? await this.Get_Instance(opts, key);
+
+        const st = this.instances.get(key)!;
+
+        if (st.idleTimer) {
+            clearTimeout(st.idleTimer);
+            st.idleTimer = null;
+        }
+
+        st.keepAlive = options?.keepAlive ?? true;;
+        st.refCount = Math.max(0, st.refCount) + 1;
+
+        return xmpp;
+    }
+
+    public static async Set_Release(
+        key: XmppKey = 'default',
+        options?: { keepAlive?: boolean; idleTtlMs?: number },
+    ) {
+        const st = this.instances.get(key);
+        
+        if (!st)
+            return;
+
+        st.refCount = Math.max(0, st.refCount - 1);
+        const keepAlive = options?.keepAlive ?? st.keepAlive ?? true;
+        const ttl = Math.max(1000, options?.idleTtlMs ?? 5 * 60 * 1000);
+
+        if (st.refCount > 0)
+            return;
+
+        if (keepAlive) {
+            if (st.idleTimer) {
+                clearTimeout(st.idleTimer);
+            }
+
+            st.idleTimer = setTimeout(async () => {
+                try {
+                    await st.xmpp?.stop?.();
+                } catch { }
+
+                this.instances.delete(key);
+            }, ttl);
+
+        } else {
+            try {
+                await st.xmpp?.stop?.();
+            } catch { }
+
+            this.instances.delete(key);
+        }
+    }
+
     /** Envia uma stanza usando a instância (default) */
     public static async Set_Event_Send(stanza: any, key: XmppKey = 'default') {
         const st = this.instances.get(key);
@@ -256,7 +320,7 @@ export default class XmppClientSingleton {
                 };
 
                 st.xmpp.on('stanza', onStanza);
-                
+
                 timeout = setTimeout(() => {
                     st.xmpp.off('stanza', onStanza);
                     reject(new Error('Ping timeout'));

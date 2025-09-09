@@ -22,7 +22,7 @@ export class XmppTrigger implements INodeType {
         codex: {
             categories: ['Communication'],
             subcategories: { Communication: ['XMPP'] },
-            alias: ['XMPP'], 
+            alias: ['XMPP'],
         },
         description: 'XMPP listener (messages and files) and Rabbit Queues (message and file sending commands).',
         defaults: { name: 'XMPP Trigger' },
@@ -57,16 +57,18 @@ export class XmppTrigger implements INodeType {
             const workflowId = String(this.getWorkflow().id);
             const cd_Key = `trigger:${workflowId}`;
 
-            const objXmppClient = await XmppClientSingleton.Get_Instance({
+            await XmppClientSingleton.Set_Acquire({
                 service: String(objCredencial_Xmpp.service),
                 domain: String(objCredencial_Xmpp.domain),
                 username: String(objCredencial_Xmpp.jid),
                 password: String(objCredencial_Xmpp.password),
                 presence: true,
-                priority: xmpp_Prioridade
-            }, cd_Key);
+                priority: xmpp_Prioridade,
+            }, cd_Key, { keepAlive: true, idleTtlMs: 60000 });
 
             await XmppClientSingleton.Get_Wait_Until_Online(cd_Key, 20000);
+
+            const objXmppClient = (XmppClientSingleton as any);
 
             const objRabbitClient = RabbitClient.getInstance();
 
@@ -364,7 +366,7 @@ export class XmppTrigger implements INodeType {
 
                     /*FECHA CONEXÃO XMPP*/
                     try {
-                        await XmppClientSingleton.Set_Reset_Instance(cd_Key);
+                        await XmppClientSingleton.Set_Release(cd_Key, { keepAlive: true, idleTtlMs: 60000 });
                     } catch { }
                 },
             };
